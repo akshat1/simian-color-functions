@@ -2,43 +2,19 @@
 /**
  * Color functions module.
  *
- * Color values as accepted by css-color-converter module.
+ * Color values as accepted by the excellent tinycolor library.
  *
  * @module simian-color-functions
- * @see https://www.npmjs.com/package/css-color-converter
+ * @see https://github.com/bgrins/TinyColor
  */
 
 
-const color = require('css-color-converter');
+const Color = require('tinycolor2');
 
 const Patterns = {
   Percentage : /.+%/,
   Number     : /\d+/
 }
-
-
-/**
- * @param {Number} a
- * @param {Number} b
- * @returns {Number} - the lesser of the two values
- * @example
- * // Both return 3
- * lesser(5, 3);
- * lesser(3, 5);
- */
-const lesser = (a, b) => a < b ? a : b;
-
-
-/**
- * @param {Number} a
- * @param {Number} b
- * @returns {Number} - the greater of the two values
- * @example
- * // Both return 5
- * lesser(5, 3);
- * lesser(3, 5);
- */
-const greater = (a, b) => a > b ? a : b;
 
 
 /**
@@ -60,90 +36,75 @@ function resolveFraction(frac) {
 }
 
 
-/**
- * Return a function which will lighten a (component) value by frac amount.
- */
-function getLightenComponentFunc(frac) {
-  return function(c, index) {
-    // We don't lighten alpha
-    if (index === 3)
-      return c;
-
-    let delta = 255 - c;
-    let bump = delta * frac;
-    return lesser(c + bump, 255);
+function validateRangeInclusive(frac, lb, ub) {
+  if (frac < lb || frac > ub) {
+    throw new Error(`Delta ${frac} must be between ${lb} and ${ub} `);
   }
 }
 
 
 /**
- * Return a function which will darken a (component) value by frac amount.
- * @param {String} value - The color value to be darkened. May be hex, rgba or color name.
+ * Lighten the color by 'frac'
+ * @param {String} color - The color value to be lightened. May be hex, rgba or color name.
  * @param {String|Number} frac - The amount by which the color should be lightened. May be a number or a percentage.
- * @returns {Function}
- */
-function getDarkenComponentFunc(frac) {
-  return function(c, index) {
-    // We don't darken alpha
-    if (index === 3)
-      return c;
-
-    let delta = c - 0;
-    let bump = delta * frac;
-    return greater(c - bump, 0);
-  }
-}
-
-
-/**
- * Lighten the color 'value' by 'frac'
- * @param {String} value - The color value to be lightened. May be hex, rgba or color name.
- * @param {String|Number} frac - The amount by which the color should be lightened. May be a number or a percentage.
- * @returns {String} - rgba string with the output color.
+ * @returns {String} - string with the output color, in the same format as input.
+ *
+ * <p>
+ * Converts the input color to hsl, and increases the lightness by frac.
+ # @see http://sass-lang.com/documentation/Sass/Script/Functions.html#lighten-instance_method
+ * </p>
  *
  * @example
- * lighten('white', '50%');                // 'rgba(127, 127, 127)'
- * lighten(rgb(255, 255, 255), 0.5);       // 'rgba(127, 127, 127)'
- * lighten(rgb(255, 255, 255, 0.7), 0.5);  // 'rgba(127, 127, 127, 0.7)'
- * lighten(#FFFFFF, 50%);                  // 'rgba(127, 127, 127)'
+ * lighten('black', '50%');           // 'grey'
+ * lighten('rgb(0, 0, 0)', 0.5);      // 'rgba(128, 128, 128)'
+ * lighten('black', 0.3);             // '#4d4d4d'
+ * lighten('rgb(0, 0, 0, 0.7)', 0.5); // 'rgba(128, 128, 128, 0.7)'
+ * lighten('#000000', '50%');         // '#808080'
  */
-module.exports.lighten = function lighten(value, frac){
+module.exports.lighten = function lighten(color, frac){
   frac = resolveFraction(frac);
-  let rgba = color(value).toRgbaArray();
-  rgba = rgba.map(getLightenComponentFunc(frac));
-  return color(rgba).toRgbString();
+  validateRangeInclusive(frac, 0, 1);
+  color = Color(color);
+  let hsl = color.toHsl();
+  hsl.l = Math.min(1, hsl.l + frac);
+  return Color(hsl).toString(color.getFormat());
 }
 
 
 /**
- * Darken the color 'value' by 'frac'
- * @param {String} value - The color value to be darkened. May be hex, rgba or color name.
+ * Darken the color by 'frac'
+ * @param {String} color - The color value to be darkened. May be hex, rgba or color name.
  * @param {String|Number} frac - The amount by which the color should be darkened. May be a number or a percentage.
  * @returns {String} - rgba string with the output color.
  *
+ * <p>
+ * Converts the input color to hsl, and decreases the lightness by frac.
+ # @see http://sass-lang.com/documentation/Sass/Script/Functions.html#darken-instance_method
+ * </p>
+ *
  * @example
- * lighten('black', '50%');          // 'rgba(127, 127, 127)'
- * lighten(rgb(0, 0, 0), 0.5);       // 'rgba(127, 127, 127)'
- * lighten(rgb(0, 0, 0, 0.7), 0.5);  // 'rgba(127, 127, 127, 0.7)'
- * lighten(#000, 50%);               // 'rgba(127, 127, 127)'
+ * lighten('black', '50%');            // 'grey'
+ * lighten('rgb(0, 0, 0)', 0.5);       // 'rgba(128, 128, 128)'
+ * lighten('rgb(0, 0, 0, 0.7)', 0.5);  // 'rgba(128, 128, 128, 0.7)'
+ * lighten('#000', '50%');             // '#808080'
  */
-module.exports.darken = function darken(value, frac){
+module.exports.darken = function darken(color, frac){
   frac = resolveFraction(frac);
-  let rgba = color(value).toRgbaArray();
-  rgba = rgba.map(getDarkenComponentFunc(frac));
-  return color(rgba).toRgbString();
+  validateRangeInclusive(frac, 0, 1);
+  color = Color(color);
+  let hsl = color.toHsl();
+  hsl.l = Math.max(0, hsl.l - frac).toPrecision(3);
+  return Color(hsl).toString(color.getFormat());
 }
-
 
 /**
  * Set new opacity regardless of what the original opacity was.
- * @param {String} value - The color value to be modified.
+ * @param {String} color - The color value to be modified.
  * @param {String|Number} - The opacity value desired
  * @returns {String} - rgba string
  */
-module.exports.opacity = function opacity(value, frac) {
+module.exports.opacity = function opacity(color, frac){
   frac = resolveFraction(frac);
-  let rgba = color(value).toRgbaArray();
-  rgba[3] = frac;
-  return color(rgba).toRgbString();
+  validateRangeInclusive(frac, 0, 1);
+  return Color(color).setAlpha(frac).toString();
 }

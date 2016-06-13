@@ -1,6 +1,6 @@
 {
   "name": "simian-color-functions",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Color functions I use with PostCSS",
   "main": "lib/index.js",
   "files": [
@@ -24,13 +24,16 @@
   },
   "homepage": "https://github.com/akshat1/simian-color-functions#readme",
   "dependencies": {
-    "css-color-converter": "^1.0.2"
+    "tinycolor2": "^1.3.0"
   },
   "devDependencies": {
     "babel-preset-es2015": "^6.9.0",
+    "chai": "^3.5.0",
     "del": "^2.2.0",
     "gulp": "^3.9.1",
     "gulp-babel": "^6.1.2",
-    "gulp-jsdoc": "^0.1.5"
+    "gulp-istanbul": "^1.0.0",
+    "gulp-jsdoc": "^0.1.5",
+    "gulp-mocha": "^2.2.0"
   }
 }
